@@ -2,9 +2,17 @@
    RooContainer.cc  
    Original Author - Nicholas Wardle - Imperial College
 *******************************************************/
+
+#include <HiggsAnalysis/CombinedLimit/interface/HGGRooPdfs.h>
+#undef ROO_EXPONENTIAL
+
+#include <RooLandau.h>
+
    
 #include "RooContainer.h"
 #include "RooMsgService.h"
+
+
 
 using namespace RooFit;
 
@@ -3496,7 +3504,7 @@ void RooContainer::AddSpecificCategoryPdf2D(int *categories,std::string name,std
 	   ;++it){
       cat_var.push_back(getcatName(*it,cat));
     }  
-    addGenericPdf2D(getcatName(name,cat),formula,obs_namex, obs_namey,cat_var,form,norm_guess,norm_min,norm_max);
+    addGenericPdf2D(cat, getcatName(name,cat),formula,obs_namex, obs_namey,cat_var,form,norm_guess,norm_min,norm_max);
 
     /*
       implement later
@@ -3529,7 +3537,7 @@ void RooContainer::AddSpecificCategoryPdf2D(int *categories,std::string name,std
 }
 
 
-void RooContainer::addGenericPdf2D(std::string name,std::string formula,std::string obs_namex, std::string obs_namey, std::vector<std::string> & var, int form, double norm_guess, double norm_min, double norm_max ){
+void RooContainer::addGenericPdf2D(int cat, std::string name,std::string formula,std::string obs_namex, std::string obs_namey, std::vector<std::string> & var, int form, double norm_guess, double norm_min, double norm_max ){
 
   //cout<<"JTao in addGenericPdf2D..."<<endl;
 
@@ -3567,7 +3575,91 @@ void RooContainer::addGenericPdf2D(std::string name,std::string formula,std::str
     }   
      
 
-    if (form >= 0) { //RooProdPdf - x,slope
+    //----------------------------------------
+    // ggAnalyzer background parametrization
+    //
+    // 2D in m(gamma,gamma) and m(jet,jet)
+    // for VBF categories
+    //----------------------------------------
+
+    if (form == 10)
+    {
+      // assume that the obs_namex corresponds to mgg and obs_namey corresponds to mjj
+      //
+      // TODO: should we check that we are actually in a VBF category ?
+
+      // we need the following parameters:
+      //
+      // mgg function:
+      //   mgg_bkg_slope1_catX        for the power law function
+      //
+      // mjj function:
+      //   mjj_bkg_fracOut_catX       relative weighting of Landau and Gaussian
+      //   mjj_bkg_sigOut_catX        sigma of the Gaussian component
+      //   mjj_bkg_sl_catX            sigma of the Landau component   
+      //
+      // the means of the Landau and the Gaussian are fixed to 250 GeV
+      //
+      // below, we expect that the vector var has the names of these
+      // variables in this order
+
+      assert(var.size() == 4);
+
+      //----------
+      // mgg part
+      //----------
+      RooPower mggPdf(getcatName("MggBkgTemp",cat).c_str(),
+		      "",
+		      m_real_var_[obs_namex],  // should be mgg
+		      m_real_var_[var[0]]
+		      );
+
+      //----------
+      // mjj part
+      //----------
+      
+      RooGaussian mjjGaussian(getcatName("MjjBkgGauss",cat).c_str(),
+			      "",
+			      m_real_var_[obs_namey],  // should be mjj
+			      RooConst(250),  // mean
+			      m_real_var_[var[2]] // sigma
+			      );
+
+      RooLandau mjjLandau(getcatName("MjjBkgLandau",cat).c_str(),
+			  "",
+			  m_real_var_[obs_namey],  // should be mjj
+			  RooConst(250),  // mean
+			  m_real_var_[var[3]] // sigma
+			  );
+
+      // add them together
+      RooAddPdf mjjPdf(getcatName("MjjBkg",cat).c_str(),
+		       "",
+		       mjjGaussian,
+		       mjjLandau,
+		       m_real_var_[var[1]] // fraction
+		       );
+
+
+
+      // the final (normalized) pdf (will used in a RooExtendPdf below)
+      //
+      // NOTE: in the ggAnalyzer workspace it looks like only the mgg
+      //       pdf is made an extended pdf and then the RooProdPdf
+      //       is taken as a product of the extended mgg pdf and the
+      //       non-extended mjj pdf..
+      //
+      //       (here, we extend the product instead...)
+      // 
+      // for ggAnalyzer, this PDF is called BkgPdf_catX
+      temp_1 = new RooProdPdf(name.c_str(),
+			      TString::Format("2d background PDF cat %d",cat),
+			      mggPdf,
+			      mjjPdf);
+
+    }
+    //----------------------------------------
+    else if (form >= 0) { //RooProdPdf - x,slope
 
       RooArgList roo_args_mass;
       RooArgList roo_args_mvan;

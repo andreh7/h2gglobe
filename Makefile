@@ -61,6 +61,14 @@ CXXFLAGS+= $(patsubst %, -I%, $(shell echo ${CMSSW_FWLITE_INCLUDE_PATH} | tr ':'
 CXXFLAGS+=-I$(shell pwd) -g
 
 ##
+## Things from CMSSW
+##
+LDFLAGS += -L$(CMSSW_BASE)/lib/$(SCRAM_ARCH)
+LDLIBS += -lHiggsAnalysisCombinedLimit
+CXXFLAGS += -I$(CMSSW_BASE)/src
+
+
+##
 ## Code from users
 ##
 -include Makefile.user

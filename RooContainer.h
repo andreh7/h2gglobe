@@ -159,8 +159,18 @@ class RooContainer {
    void InputDataPoint2D(std::string data_name,int cat, double x, double y, double w); // to fill 2D variables with event weights
   //void InputDataPoint2D(std::string data_name, std::string var_namex, std::string var_namey, int cat, double x, double y, double w); // to fill 2D variables with event weights
 
+   /** create a 2D pdf 
+
+   @param form determines which functional form is used. Currently the following are defined:
+
+          10   ggAnalyzer like background pdf for VBF categories: product of power law (mgg) and       
+               Landau + Gaussian (mjj). Needs four elements in var.
+
+	  >=0  pdf for mgg vs. VBF output
+   */
+
    void AddSpecificCategoryPdf2D(int *categories,std::string name,std::string formula,std::string obs_namex, std::string obs_namey, std::vector<std::string> & var, int form, double norm_guess, double norm_min, double norm_max);
-   void addGenericPdf2D(std::string name,std::string formula,std::string obs_namex, std::string obs_namey, std::vector<std::string> & var, int form, double norm_guess, double norm_min, double norm_max );
+   void addGenericPdf2D(int cat, std::string name,std::string formula,std::string obs_namex, std::string obs_namey, std::vector<std::string> & var, int form, double norm_guess, double norm_min, double norm_max );
 
 
    void FitToData2D(std::string,std::string,std::string,std::string,double x1,double x2,double y1,double y2);
